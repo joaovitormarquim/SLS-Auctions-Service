@@ -3,6 +3,7 @@ import httpErrorHandler from '@middy/http-error-handler';
 import createError from 'http-errors';
 import { getAuctionById } from './getAuction';
 import { uploadPictureToS3 } from '../lib/uploadPictureToS3';
+import { setAuctionPictureUrl } from '../lib/setAuctionPictureUrl'; 
 
 export async function uploadAuctionPicture(event) {
   const { id } = event.pathParameters;
@@ -11,17 +12,16 @@ export async function uploadAuctionPicture(event) {
   const buffer = Buffer.from(base64, 'base64');
 
   try {
-    const uploadToS3Result = await uploadPictureToS3(auction.id + '.jpg', buffer);
-    console.log(uploadToS3Result);
+    const pictureUrl = await uploadPictureToS3(auction.id + '.jpg', buffer);
+    const updatedAuction = await setAuctionPictureUrl(id, pictureUrl);
+    return {
+      statusCode: 200,
+      body: JSON.stringify(updatedAuction),
+    };
   } catch (error) {
     console.log(error);    
     throw new createError.InternalServerError(error);
   }
-
-  return {
-    statusCode: 200,
-    body: JSON.stringify({}),
-  };
 }
 
 export const handler = middy(uploadAuctionPicture)
